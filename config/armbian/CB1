@@ -39,4 +39,4 @@ export BASE_RELEASE_COMPRESS
 # - cb1spi module not used, since armbian-config can manage device tree overlays
 # - removed need for passwordless_sudo
 # - ssh_fix, added fixes from custompios dev branch
-export MODULES="base,deb_nameserver,pkgupgrade(network,cb1config,klipper,node,is_req_preinstall,moonraker,ratos(mainsail,crowsnest,linear_movement_analysis,timelapse,klipperscreen,rpi_mcu,disable-services(hotspot_cb1),dfu-util),password-for-sudo),ssh_fix,postrename"
+export MODULES="base,deb_nameserver,pkgupgrade(network,cb1config,klipper,node,is_req_preinstall,moonraker,ratos(mainsail,crowsnest,linear_movement_analysis,timelapse,klipperscreen,rpi_mcu,hotspot_cb1,dfu-util),password-for-sudo),ssh_fix,postrename"
