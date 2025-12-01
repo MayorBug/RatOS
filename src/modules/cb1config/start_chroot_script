@@ -15,7 +15,7 @@ source /common.sh
 install_cleanup_trap
 
 ##
-Removed SPI-specific setup, all supported env variables can be set with armbian-config
+# Removed SPI-specific setup, all supported env variables can be set with armbian-config
 ##
 
 # Step 1: Disable Bluetooth-related services if present
