@@ -53,3 +53,11 @@ for g in disk audio plugdev games users systemd-journal input netdev ssh; do
     usermod -a -G "$g" "${BASE_USER}"
   fi
 done
+
+# Step 7: Ensure systemd-networkd/wait-online stays disabled (NetworkManager handles CB1 networking)
+echo_green "Disabling systemd-networkd wait-online stack in favor of NetworkManager..."
+for unit in systemd-networkd.service systemd-networkd.socket systemd-networkd-wait-online.service NetworkManager-wait-online.service; do
+  systemctl_if_exists stop "${unit}" || true
+  systemctl_if_exists disable "${unit}" || true
+  systemctl_if_exists mask "${unit}" || true
+done
