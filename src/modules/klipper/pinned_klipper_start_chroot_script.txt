@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+#### Klipper Install Module
+####
+#### Based on work done by Raymond Himle and Stefan Dej
+####
+#### Written by Stephan Wendel aka KwadFan <me@stephanwe.de>
+#### Copyright 2022
+#### https://github.com/mainsail-crew/MainsailOS
+####
+#### This File is distributed under GPLv3
+####
+
+# shellcheck enable=require-variable-braces
+
+### For easier maintainability look to klipper/config.
+
+## Source error handling, leave this in place
+set -Ee
+
+## Set LC_ALL to prevent errors
+export LC_ALL=C
+
+# Set DEBIAN_FRONTEND to noninteractive
+if [[ "${DEBIAN_FRONTEND}" != "noninteractive" ]]; then
+    export DEBIAN_FRONTEND=noninteractive
+fi
+
+## Source CustomPIOS common.sh
+# shellcheck disable=SC1091
+source /common.sh
+install_cleanup_trap
+
+run_as_base() {
+    local base_home="/home/${BASE_USER}"
+    if command -v runuser >/dev/null 2>&1; then
+        runuser -u "${BASE_USER}" -- env HOME="${base_home}" USER="${BASE_USER}" LOGNAME="${BASE_USER}" PATH="$PATH" "$@"
+    else
+        HOME="${base_home}" USER="${BASE_USER}" LOGNAME="${BASE_USER}" sudo -u "${BASE_USER}" "$@"
+    fi
+}
+
+ensure_klipper_python() {
+    if command -v "${KLIPPER_PYTHON_BIN}" >/dev/null 2>&1; then
+        return
+    fi
+    local python_version="${KLIPPER_PYTHON_VERSION:-3.12.6}"
+    local python_src="Python-${python_version}"
+    local python_tar="${python_src}.tgz"
+    local work_dir="/usr/src"
+    echo_green "Building ${KLIPPER_PYTHON_BIN} (${python_version}) from source ..."
+    mkdir -p "${work_dir}"
+    rm -rf "${work_dir:?}/${python_src}" "${work_dir}/${python_tar}"
+    curl -fsSL "https://www.python.org/ftp/python/${python_version}/${python_tar}" -o "${work_dir}/${python_tar}"
+    tar -xf "${work_dir}/${python_tar}" -C "${work_dir}"
+    pushd "${work_dir}/${python_src}" &> /dev/null || exit 1
+    ./configure --enable-optimizations --with-ensurepip=install
+    make -j"$(nproc)"
+    make altinstall
+    popd &> /dev/null || exit 1
+    rm -rf "${work_dir:?}/${python_src}" "${work_dir}/${python_tar}"
+}
+
+cleanup_klipper_python_artifacts() {
+    # Remove leftover python build trees (should already be gone, but safe)
+    rm -rf /usr/src/Python-* /usr/src/Python-*.tgz || true
+    local py_version_short=""
+    if command -v "${KLIPPER_PYTHON_BIN}" >/dev/null 2>&1; then
+        py_version_short="$("${KLIPPER_PYTHON_BIN}" -c 'import sys;print("{}.{}".format(*sys.version_info[:2]))' 2>/dev/null || true)"
+    fi
+    if [[ -n "${py_version_short}" ]]; then
+        local py_lib_dir="/usr/local/lib/python${py_version_short}"
+        rm -rf \
+            "${py_lib_dir}/test" \
+            "${py_lib_dir}/distutils/tests" \
+            "${py_lib_dir}/lib2to3/tests" \
+            "${py_lib_dir}/ensurepip/_bundled" \
+            "${py_lib_dir}/idlelib/idle_test" || true
+    fi
+    rm -rf /root/.cache/pip /home/"${BASE_USER}"/.cache/pip /tmp/pip-* || true
+    if [[ -n "${KLIPPER_PYTHON_BUILD_DEPS:-}" ]]; then
+        echo_green "Removing Python build dependencies ..."
+        # shellcheck disable=SC2086
+        apt-get purge -y ${KLIPPER_PYTHON_BUILD_DEPS} || true
+        apt-get autoremove -y --purge || true
+    fi
+}
+
+unpack /filesystem/root /
+
+echo_green "Installing Klipper and enable klippy Service ..."
+
+## Install all deps at once for time consumption reasons.
+## APT: Update Repo Database and install Dependencies
+# Force apt update
+apt update
+echo_green "Installing Klipper Dependencies ..."
+## Disabling shellcheck SC2086, because we want "wordsplitting"
+# shellcheck disable=SC2086
+check_install_pkgs ${KLIPPER_DEPS}
+ensure_klipper_python
+cleanup_klipper_python_artifacts
+
+# be extra nice to fragile networks (optional, helps with flaky runners)
+if command -v git >/dev/null 2>&1; then
+    git config --global http.lowSpeedLimit 0
+    git config --global http.lowSpeedTime 0
+    git config --global http.postBuffer 524288000
+fi
+
+## Make sure user pi has access to serial ports
+## NOTE: BASE_USER is defined by CustomPIOS Variable
+## there for if you plan to set something else than "pi"
+## Currently CustomPIOS uses "pi"
+
+usermod -a -G "${KLIPPER_USER_GROUPS}" "${BASE_USER}"
+
+## Clone klipper repo
+pushd "/home/${BASE_USER}" &> /dev/null || exit 1
+KLIPPER_REPO_DIR="/home/${BASE_USER}/klipper"
+if [[ -d "${KLIPPER_REPO_DIR}/.git" ]]; then
+    echo_green "Refreshing existing Klipper repo ..."
+    run_as_base git -C "${KLIPPER_REPO_DIR}" fetch --all --prune || true
+    if [[ -n "${KLIPPER_REPO_SHIP:-}" ]]; then
+        run_as_base git -C "${KLIPPER_REPO_DIR}" remote set-url origin "${KLIPPER_REPO_SHIP}" || true
+    fi
+else
+    gitclone KLIPPER_REPO klipper
+fi
+if [[ -n "${KLIPPER_REPO_COMMIT:-}" ]]; then
+    echo_green "Checking out Klipper commit ${KLIPPER_REPO_COMMIT}"
+    run_as_base git -C "${KLIPPER_REPO_DIR}" fetch origin --tags || true
+    run_as_base git -C "${KLIPPER_REPO_DIR}" checkout --force "${KLIPPER_REPO_COMMIT}"
+    run_as_base git -C "${KLIPPER_REPO_DIR}" reset --hard "${KLIPPER_REPO_COMMIT}"
+elif [[ -n "${KLIPPER_REPO_BRANCH:-}" ]]; then
+    run_as_base git -C "${KLIPPER_REPO_DIR}" checkout "${KLIPPER_REPO_BRANCH}" || run_as_base git -C "${KLIPPER_REPO_DIR}" checkout -B "${KLIPPER_REPO_BRANCH}"
+    run_as_base git -C "${KLIPPER_REPO_DIR}" reset --hard "origin/${KLIPPER_REPO_BRANCH}" || true
+fi
+
+## Create needed dirs
+for dir in ${KLIPPER_USER_DIRS}; do
+    if [[ -d "/home/${BASE_USER}/${dir}" ]]; then
+        echo_green "${dir} already exists!"
+    else
+        echo_green "Creating ${dir}"
+        run_as_base mkdir -p "${dir}"
+    fi
+done
+popd &> /dev/null || exit 1
+
+# Copy printer_data for klipper/klippy
+echo_green "Copy files to 'printer_data' ..."
+unpack /filesystem/home/"${BASE_USER}" /home/"${BASE_USER}" "${BASE_USER}"
+
+## create python virtualenv and install klipper requirements
+pushd "/home/${BASE_USER}" &> /dev/null || exit 1
+echo_green "Creating Virtualenv for Klipper (klippy-env) ..."
+KLIPPER_VENV_PYTHON="${KLIPPER_PYTHON_BIN:-python3}"
+if ! command -v "${KLIPPER_VENV_PYTHON}" >/dev/null 2>&1; then
+    echo_red "Requested python interpreter ${KLIPPER_VENV_PYTHON} not found, falling back to python3"
+    KLIPPER_VENV_PYTHON="python3"
+fi
+run_as_base virtualenv -p "${KLIPPER_VENV_PYTHON}" "${KLIPPER_PYTHON_DIR}"
+echo_green "Installing klippy Python Dependencies ..."
+run_as_base "${KLIPPER_PYTHON_DIR}"/bin/pip install -r "${KLIPPER_SRC_DIR}"/"${KLIPPER_PYENV_REQ}"
+popd &> /dev/null || exit 1
+
+# Compile python files
+run_as_base "${KLIPPER_PYTHON_DIR}"/bin/python -m compileall "${KLIPPER_SRC_DIR}"/klippy
+# Compile C files
+run_as_base "${KLIPPER_PYTHON_DIR}"/bin/python "${KLIPPER_SRC_DIR}"/klippy/chelper/__init__.py
+
+
+## Enable systemd service
+systemctl_if_exists enable klipper.service
+
+## Done message
+echo_green "Installing Klipper and enable klippy Service ..."

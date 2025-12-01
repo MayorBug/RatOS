@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+/usr/lib/ratos/hotspot-manager.sh event "$@"

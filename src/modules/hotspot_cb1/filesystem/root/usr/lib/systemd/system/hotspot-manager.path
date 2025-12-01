@@ -1,0 +1,8 @@
+[Unit]
+Description=Watch /boot/hotspot.cfg for changes
+
+[Path]
+PathModified=/boot/hotspot.cfg
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=RatOS Hotspot Manager
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/ratos/hotspot-manager.sh apply
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
