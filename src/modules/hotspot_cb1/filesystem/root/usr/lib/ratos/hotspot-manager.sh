@@ -94,7 +94,6 @@ ensure_hotspot_connection() {
         ipv4.method shared \
         ipv4.addresses "${HOTSPOT_ADDRESS}" \
         ipv4.gateway "${gateway}" \
-        ipv4.dns "8.8.8.8,1.1.1.1" \
         ipv4.may-fail no \
         ipv6.method ignore \
         802-11-wireless-security.key-mgmt wpa-psk \
