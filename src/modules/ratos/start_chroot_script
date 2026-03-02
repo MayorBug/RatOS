@@ -79,7 +79,35 @@ EOF
   chown root:root "${system_env}"
   chmod 0644 "${system_env}"
 }
+apply_configurator_live_patches() {
+  local cfg_dir="/home/${BASE_USER}/ratos-configurator"
+  local codename="unknown"
+  local req_file="${cfg_dir}/configuration/klippy/requirements.txt"
+  local common_sh="${cfg_dir}/configuration/scripts/ratos-common.sh"
 
+  if [[ -f /etc/os-release ]]; then
+    # shellcheck disable=SC1091
+    source /etc/os-release
+    codename="${VERSION_CODENAME:-unknown}"
+  fi
+
+  if [[ "${codename}" != "trixie" ]]; then
+    echo_green "Skipping configurator live patches (codename: ${codename})"
+    return 0
+  fi
+
+  echo_green "Applying trixie compatibility live patches for RatOS Configurator"
+
+  if [[ -f "${req_file}" ]] && grep -qE '^pygam==0\.9\.1([[:space:]]|$)' "${req_file}"; then
+    sed -i 's/^pygam==0\.9\.1$/pygam>=0.10.0,<0.13/' "${req_file}"
+    echo_green "Patched ${req_file}: pygam==0.9.1 -> pygam>=0.10.0,<0.13"
+  fi
+
+  if [[ -f "${common_sh}" ]] && grep -q '\blibopenblas-base\b' "${common_sh}"; then
+    sed -i 's/\blibopenblas-base\b/libopenblas0/g' "${common_sh}"
+    echo_green "Patched ${common_sh}: libopenblas-base -> libopenblas0"
+  fi
+}
 # --- BEGIN: sudo shim (handles nosuid mounts during chroot build) ---
 # plain `sudo cmd` -> cmd,  `sudo -u USER cmd` -> runuser -u USER -- cmd
 check_install_pkgs util-linux || true  # runuser
@@ -135,6 +163,7 @@ check_install_pkgs ${RATOS_DEPS} curl
 
 # Install RatOS Configurator (runs as BASE_USER)
 ensure_ratos_env
+apply_configurator_live_patches
 CONFIG_SETUP="/home/${BASE_USER}/ratos-configurator/app/scripts/setup.sh"
 if ! grep -q 'ALLOW_ROOT' "${CONFIG_SETUP}"; then
   python3 - "$CONFIG_SETUP" <<'PY'
@@ -306,6 +335,10 @@ env -u SUDO_USER -u SUDO_HOME -u SUDO_UID -u SUDO_GID \
   bash "${INSTALL_SCRIPT}"
 chown -R "${BASE_USER}:${BASE_USER}" "/home/${BASE_USER}"
 
+
+# Clean up sudo shim so the final image uses the real sudo
+rm -f /usr/local/bin/sudo || true
+
 # Create variant file
 echo "${BASE_DISTRO}" > /etc/"${BASE_DISTRO}"-variant
 
@@ -337,6 +370,3 @@ END
 
 #Make motd files executable
 chmod +x /etc/update-motd.d/*
-
-# Clean up sudo shim so the final image uses the real sudo
-rm -f /usr/local/bin/sudo || true
