@@ -3,6 +3,9 @@ title: Complete list
 sidebar_position: 1000000
 ---
 
+:::danger PINOUTS CHANGED
+Some pinouts have changed in RatOS 2.1.0-RC4 but have not yet been updated in the documentation. For the time being, please refer to the source configuration files and wiring diagrams [here](https://github.com/Rat-OS/RatOS-configurator/tree/v2.1.x/configuration/boards). See the [upgrading from RC3](../upgrading_from_rc3.md) guide for more information. (2026-02-02)
+:::
 :::warning 2.1 documentation is incomplete.
 This is preliminary documentation for the upcoming v2.1.0 release. The work is still ongoing and the documentation is not yet complete.
 :::

@@ -24,6 +24,7 @@ const sidebars = {
 				{ type: "doc", id: "installation" },
 				{ type: "doc", id: "configuration" },
 				{ type: "doc", id: "slicers" },
+				{ type: "doc", id: "upgrading_rc3" },
 			],
 		},
 		{

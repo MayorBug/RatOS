@@ -12,7 +12,9 @@ import {Button} from "@site/src/components/ui/button";
 :::warning 2.1 documentation is incomplete.
 This is preliminary documentation for the upcoming v2.1.0 release. The work is still ongoing and the documentation is not yet complete.
 :::
-
+:::info Upgrading from RC3
+If you are upgrading from 2.1.0-RC3, make sure you've read the [upgrade guide](/docs/upgrading_rc3/) first.
+:::
 
 ## Raspberry Pi Installation
 
@@ -21,8 +23,8 @@ There are multiple examples of bad quality sd cards causing boot and corruption 
 :::
 
 Download the newest release (download the RatOS-\*.img.xz file under the assets dropdown) of [RatOS on github](https://github.com/Rat-Os/RatOS/releases).
-Then use [Balena Etcher](https://www.balena.io/etcher/) to write that image to the SD card that goes into your raspberry pi (16GB or larger). If balena etcher isn't working for you, you can try another tool such as RUFUS. 
-If you're using the Raspberry Pi Imager, make absolutely sure you've disabled custom/additional settings, or it will break the RatOS hotspot and network configuration.
+Then use [RUFUS](https://rufus.ie/en/) (Windows only) or [Raspberry Pi Imager](https://www.raspberrypi.com/software/) to write that image to the SD card that goes into your raspberry pi (16GB or larger).
+If you're using the Raspberry Pi Imager, make absolutely sure you've disabled custom/additional settings, or it will break the RatOS hotspot and network configuration. Problems are often reported when using [Balena Etcher](https://www.balena.io/etcher/) so it is no longer recommended.
 
 Note: this will destroy all data on the card!
 
@@ -58,6 +60,11 @@ If you cannot connect to http://RatOS.local/config but the RatOS hotspot doesn't
 ## Updating RatOS
 
 If you followed the link to the mainsail machine page above, you'll see a panel with the title "Update Manager", this is where you can update all the packages to their latest versions.
+
+:::info Update Manager Initialization
+Occasionally, the Update Manager show may show one or more repositories as `INVALID`, often with a single `?` beneath the repository name. This is a Mainsail issue related to synchronising the system clock (time of day) using NTP. You can try to wait 2-3 minutes, then refresh. If the problem persists, restart the host (Raspberry Pi) and try again.
+![Borked Update Manager](_media/update_manager_borked.png)
+:::
 
 1. Update RatOS packages first.
 	- If you see both `ratos` and `ratos-configurator` in the list (RatOS prior to V2.1.0-RC4), start by updating `ratos` first, then `ratos-configurator`.

@@ -36,6 +36,10 @@ const config: Config = {
 							label: "2.1.x",
 							path: "",
 						},
+						"2.1.0rc3": {
+							label: "2.1.0-RC3",
+							path: "2.1.0rc3",
+						},
 						"2.0.x": {
 							label: "2.0.x",
 							path: "/2.0.x",

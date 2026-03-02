@@ -67,7 +67,7 @@ heater_temp: 40
 
 ## 3. External (stand-alone controller) heater
 
-A dedicated heater device with or without its own temperature control that can be switched on/off by a relais/output_pin and a chamber thermistor to control the initial chamber temperature.
+A dedicated heater device with or without its own temperature control that can be switched on/off by a relay/output_pin and a chamber thermistor to control the initial chamber temperature.
 
 - if no `temperature_sensor chamber` is defined, the hotend thermistor will be used to wait for the initial chamber temperature.
 - a `temperature_sensor chamber` can be used for the automatic chamber temperature control. In this case set `chamber_heater_control_external_heater` to `True`. This will turn the heater on/off when needed.

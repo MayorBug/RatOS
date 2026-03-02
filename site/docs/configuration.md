@@ -74,9 +74,9 @@ If the state does not change or does not reflect the correct state, you should d
 
 2. Verify Z-Probe
 
-<div className="text-amber-300 font-medium">
-_Skip this step if you're using a Beacon, see the instructions in `printer.cfg`_
-</div>
+:::info Beacon Probe
+If you are using a beacon as your Z-Probe, you should skip this step and follow the [Beacon](configuration/beacon.md) documentation to verify and calibrate your beacon.
+:::
 
 In the same dialog, you can also see your Z-Probe state. Refresh the Z-Probe state and verify that the state changes to triggered when you manually trigger the Z-Probe.
 
@@ -87,10 +87,13 @@ To test, debug and/or verify a BLTouch, refer to the [BLTouch klipper documentat
 :::
 
 ## Z-Offset
+:::info Beacon First Layers
+If you are using beacon as your Z-probe, please read the [First Layers](configuration/first_layers.md) section, as there are significant improvements to first layer accuracy and consistency with beacon in RC4.
+:::
 
-<div className="text-amber-300 font-medium">
-_Skip this step if you're using a Beacon, see the instructions in `printer.cfg`_
-</div>
+:::info Beacon Probe
+If you are using a beacon as your Z-Probe, you should skip this step and follow the [Beacon](configuration/beacon.md) documentation to verify and calibrate your beacon.
+:::
 
 1. Run `PROBE_CALIBRATE`
 
